@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Form Filling Assistant",
+  "version": "1.0.0",
+  "description": "Automatiza el llenado de formularios de contacto en sitios web",
+  "permissions": [
+    "storage",
+    "identity",
+    "activeTab",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "oauth2": {
+    "client_id": "374078948069-05g936a1kp72cq6h53lo2s2baa7a0jji.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/datastore"
+    ]
+  },
+  "action": {
+    "default_popup": "src/html/popup.html",
+    "default_title": "Form Filling Assistant"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/js/contentScript.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/js/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "background": {
+    "service_worker": "src/js/background.js"
+  }
+}

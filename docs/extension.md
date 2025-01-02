@@ -22,6 +22,7 @@ Ejemplo de `manifest.json`:
     }
   ]
 }
+
 2. Background Script
 Funcionalidades:
 Guardar el token en chrome.storage.local tras login.
@@ -45,38 +46,3 @@ Captchas:
 Si se detecta, avisar al background para resolver (ver captcha.md).
 Comunicación:
 chrome.runtime.sendMessage({ urlId, estado, mensaje }) tras terminar.
-yaml
-Copiar código
----
-
-## 5. `docs/captcha.md`
-
-```markdown
-# Manejo de Captchas
-
-## 1. Tipos de Captchas Soportados
-
-- reCAPTCHA v2 (checkbox)
-- reCAPTCHA invisible / v3
-- hCaptcha
-- Captchas de imagen simples
-
-## 2. Estrategias de Resolución
-
-1. **Servicio de Terceros (2Captcha, AntiCaptcha)**:
-   - El content script detecta la presencia del captcha, obtiene la `sitekey`.
-   - Envía al background: `{ sitekey, pageUrl }`.
-   - El background llama a la API del servicio (p. ej. 2Captcha) con `CAPTCHA_SERVICE_KEY`.
-   - Una vez resuelto, el background se lo pasa al content script, que lo inyecta y hace submit.
-
-2. **Resolución Manual**:
-   - Content script notifica al background: “Se requiere captcha manual”.
-   - El usuario ingresa manualmente el texto o soluciona el captcha interactivo.
-
-## 3. Flujo de Resolución
-
-1. Content script detecta el captcha → `sendMessage` al background.
-2. Background script llama al servicio de resolución o pide input al usuario.
-3. Background recibe el token/respuesta → lo pasa al content script.
-4. Content script inyecta la respuesta en el campo y hace submit.
-

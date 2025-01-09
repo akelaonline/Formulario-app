@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "Form Filler Test",
+  "version": "1.0",
+  "description": "Test Extension",
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

@@ -1,67 +1,94 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/common/ProtectedRoute';
-import Navbar from './components/common/Navbar';
-import Home from './pages/home/Home';
 import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
 import Dashboard from './pages/dashboard/Dashboard';
-import UrlManager from './pages/dashboard/UrlManager';
-import TemplateManager from './pages/dashboard/TemplateManager';
+import Campaigns from './pages/dashboard/Campaigns';
+import Templates from './pages/dashboard/Templates';
+import URLs from './pages/dashboard/URLs';
 import Stats from './pages/dashboard/Stats';
 import Settings from './pages/dashboard/Settings';
+import TemplateManager from './pages/dashboard/TemplateManager';
+import PrivateRoute from './components/auth/PrivateRoute';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="min-h-screen bg-gray-100">
-          <Routes>
-            <Route path="/" element={<><Navbar /><Home /></>} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/urls"
-              element={
-                <ProtectedRoute>
-                  <UrlManager />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/templates"
-              element={
-                <ProtectedRoute>
-                  <TemplateManager />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/stats"
-              element={
-                <ProtectedRoute>
-                  <Stats />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </div>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          
+          {/* Rutas del Dashboard */}
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Rutas de Campañas */}
+          <Route
+            path="/dashboard/campaigns"
+            element={
+              <PrivateRoute>
+                <Campaigns />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Rutas de Plantillas */}
+          <Route
+            path="/dashboard/templates"
+            element={
+              <PrivateRoute>
+                <Templates />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/dashboard/templates/:id"
+            element={
+              <PrivateRoute>
+                <TemplateManager />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Ruta de URLs */}
+          <Route
+            path="/dashboard/urls"
+            element={
+              <PrivateRoute>
+                <URLs />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Ruta de Estadísticas */}
+          <Route
+            path="/dashboard/stats"
+            element={
+              <PrivateRoute>
+                <Stats />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Ruta de Configuración */}
+          <Route
+            path="/dashboard/settings"
+            element={
+              <PrivateRoute>
+                <Settings />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Redirecciones por defecto */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
       </AuthProvider>
     </Router>
   );

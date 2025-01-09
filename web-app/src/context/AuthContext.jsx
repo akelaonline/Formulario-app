@@ -1,65 +1,73 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signOut, 
-  onAuthStateChanged,
-  browserPopupRedirectResolver
-} from 'firebase/auth';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../services/firebase';
+import { 
+    signInWithPopup,
+    GoogleAuthProvider,
+    signOut
+} from 'firebase/auth';
 
 const AuthContext = createContext();
 
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export function useAuth() {
+    return useContext(AuthContext);
+}
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({ children }) {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-  const loginWithGoogle = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      const result = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
-      return result.user;
-    } catch (error) {
-      console.error('Error en la autenticación:', error);
-      throw error;
-    }
-  };
+    useEffect(() => {
+        // Suscribirse a cambios en el estado de autenticación
+        const unsubscribe = auth.onAuthStateChanged(user => {
+            console.log('Estado de autenticación cambiado:', user);
+            setUser(user);
+            setLoading(false);
+        });
 
-  const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-      throw error;
-    }
-  };
+        return unsubscribe;
+    }, []);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
+    const signInWithGoogle = async () => {
+        setError(null);
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
+        
+        try {
+            const result = await signInWithPopup(auth, provider);
+            console.log('Resultado de autenticación:', result);
+            return result;
+        } catch (error) {
+            console.error('Error al iniciar sesión con Google:', error);
+            setError(error);
+            throw error;
+        }
+    };
 
-    return unsubscribe;
-  }, []);
+    const logout = async () => {
+        setError(null);
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error('Error al cerrar sesión:', error);
+            setError(error);
+            throw error;
+        }
+    };
 
-  const value = {
-    user,
-    loginWithGoogle,
-    logout,
-    loading
-  };
+    const value = {
+        user,
+        loading,
+        error,
+        signInWithGoogle,
+        logout
+    };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
-};
+    return (
+        <AuthContext.Provider value={value}>
+            {!loading && children}
+        </AuthContext.Provider>
+    );
+}

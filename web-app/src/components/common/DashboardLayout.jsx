@@ -10,6 +10,7 @@ import {
     DocumentDuplicateIcon,
     ChartBarIcon,
     Cog6ToothIcon,
+    MegaphoneIcon,
 } from '@heroicons/react/24/outline';
 
 function classNames(...classes) {
@@ -22,11 +23,12 @@ export default function DashboardLayout({ children }) {
     const location = useLocation();
 
     const navigation = [
-        { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-        { name: 'URLs', href: '/dashboard/urls', icon: LinkIcon },
-        { name: 'Templates', href: '/dashboard/templates', icon: DocumentDuplicateIcon },
-        { name: 'Estadísticas', href: '/dashboard/stats', icon: ChartBarIcon },
-        { name: 'Configuración', href: '/dashboard/settings', icon: Cog6ToothIcon },
+        { name: 'Dashboard', href: '/', icon: HomeIcon },
+        { name: 'Plantillas', href: '/templates', icon: DocumentDuplicateIcon },
+        { name: 'Campañas', href: '/campaigns', icon: MegaphoneIcon },
+        { name: 'URLs', href: '/urls', icon: LinkIcon },
+        { name: 'Estadísticas', href: '/stats', icon: ChartBarIcon },
+        { name: 'Configuración', href: '/settings', icon: Cog6ToothIcon },
     ];
 
     return (

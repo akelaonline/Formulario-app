@@ -1,176 +1,324 @@
-import React, { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { db } from '../../services/firebase';
-import { Dialog } from '@headlessui/react';
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import DashboardLayout from '../../components/common/DashboardLayout';
+import { MagnifyingGlassIcon, PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 
-const URLs = () => {
-  const [urls, setUrls] = useState([]);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [bulkUrls, setBulkUrls] = useState('');
-  const [loading, setLoading] = useState(false);
+export default function URLs() {
+    const { user } = useAuth();
+    const [urlLists, setUrlLists] = useState([]);
+    const [newUrls, setNewUrls] = useState('');
+    const [newListName, setNewListName] = useState('');
+    const [selectedListId, setSelectedListId] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [expandedLists, setExpandedLists] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
 
-  useEffect(() => {
-    loadUrls();
-  }, []);
+    useEffect(() => {
+        loadUrlLists();
+    }, [user]);
 
-  const loadUrls = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, 'urls'));
-      const urlsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setUrls(urlsData);
-    } catch (error) {
-      console.error('Error loading URLs:', error);
-    }
-  };
-
-  const handleBulkImport = async () => {
-    setLoading(true);
-    try {
-      const urlList = bulkUrls.split('\\n').filter(url => url.trim());
-      
-      for (const url of urlList) {
-        await addDoc(collection(db, 'urls'), {
-          url: url.trim(),
-          createdAt: new Date()
-        });
-      }
-      
-      await loadUrls();
-      setShowImportModal(false);
-      setBulkUrls('');
-    } catch (error) {
-      console.error('Error importing URLs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      const text = e.target.result;
-      setBulkUrls(text);
-      setShowImportModal(true);
+    const loadUrlLists = async () => {
+        try {
+            const urlsQuery = query(
+                collection(db, 'urlLists'),
+                where('userId', '==', user.uid)
+            );
+            const snapshot = await getDocs(urlsQuery);
+            const lists = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setUrlLists(lists);
+            setLoading(false);
+        } catch (error) {
+            console.error('Error al cargar listas:', error);
+            setError('Error al cargar las listas de URLs');
+            setLoading(false);
+        }
     };
 
-    reader.readAsText(file);
-  };
+    const validateAndExtractUrls = (text) => {
+        const urlPattern = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/;
+        const urls = text.split(/[\n,]/).map(url => url.trim()).filter(url => url);
+        const validUrls = urls.filter(url => urlPattern.test(url));
+        const invalidUrls = urls.filter(url => !urlPattern.test(url));
+        return { validUrls, invalidUrls };
+    };
 
-  const handleDelete = async (urlId) => {
-    try {
-      await deleteDoc(doc(db, 'urls', urlId));
-      await loadUrls();
-    } catch (error) {
-      console.error('Error deleting URL:', error);
-    }
-  };
+    const handleCreateList = async () => {
+        try {
+            if (!newListName.trim()) {
+                setError('Por favor, ingresa un nombre para la lista');
+                return;
+            }
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestión de URLs</h1>
-            <p className="text-gray-600 mt-1">
-              Administra las URLs para el llenado automático de formularios
-            </p>
-          </div>
-          <div className="flex space-x-3">
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Importar URLs
-            </button>
-            <label className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 cursor-pointer">
-              Importar Archivo
-              <input
-                type="file"
-                className="hidden"
-                accept=".txt,.csv"
-                onChange={handleFileUpload}
-              />
-            </label>
-          </div>
-        </div>
+            const { validUrls, invalidUrls } = validateAndExtractUrls(newUrls);
+            
+            if (invalidUrls.length > 0) {
+                setError(`Las siguientes URLs no son válidas:\n${invalidUrls.join('\n')}`);
+                return;
+            }
 
-        {/* Lista de URLs */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200">
-            {urls.map((url) => (
-              <li key={url.id} className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium text-indigo-600 truncate">
-                    {url.url}
-                  </div>
-                  <div className="ml-2 flex-shrink-0 flex">
-                    <button
-                      onClick={() => handleDelete(url.id)}
-                      className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
+            await addDoc(collection(db, 'urlLists'), {
+                userId: user.uid,
+                name: newListName,
+                urls: validUrls,
+                createdAt: new Date().toISOString()
+            });
+
+            setNewUrls('');
+            setNewListName('');
+            setSuccess('Lista creada exitosamente');
+            loadUrlLists();
+        } catch (error) {
+            console.error('Error al crear lista:', error);
+            setError('Error al crear la lista');
+        }
+    };
+
+    const handleAddToList = async () => {
+        try {
+            if (!selectedListId) {
+                setError('Por favor, selecciona una lista');
+                return;
+            }
+
+            const { validUrls, invalidUrls } = validateAndExtractUrls(newUrls);
+            
+            if (invalidUrls.length > 0) {
+                setError(`Las siguientes URLs no son válidas:\n${invalidUrls.join('\n')}`);
+                return;
+            }
+
+            const selectedList = urlLists.find(list => list.id === selectedListId);
+            const existingUrls = selectedList.urls;
+            
+            // Verificar duplicados
+            const duplicates = validUrls.filter(url => 
+                existingUrls.some(existingUrl => 
+                    new URL(existingUrl).hostname === new URL(url).hostname
+                )
+            );
+
+            if (duplicates.length > 0) {
+                setError(`Las siguientes URLs ya existen en la lista:\n${duplicates.join('\n')}`);
+                return;
+            }
+
+            const listRef = doc(db, 'urlLists', selectedListId);
+            await updateDoc(listRef, {
+                urls: [...existingUrls, ...validUrls]
+            });
+
+            setNewUrls('');
+            setSuccess('URLs agregadas exitosamente');
+            loadUrlLists();
+        } catch (error) {
+            console.error('Error al agregar URLs:', error);
+            setError('Error al agregar las URLs');
+        }
+    };
+
+    const handleDeleteUrl = async (listId, urlToDelete) => {
+        try {
+            const listRef = doc(db, 'urlLists', listId);
+            const list = urlLists.find(l => l.id === listId);
+            const updatedUrls = list.urls.filter(url => url !== urlToDelete);
+            
+            await updateDoc(listRef, {
+                urls: updatedUrls
+            });
+            
+            setSuccess('URL eliminada exitosamente');
+            loadUrlLists();
+        } catch (error) {
+            console.error('Error al eliminar URL:', error);
+            setError('Error al eliminar la URL');
+        }
+    };
+
+    const handleDeleteList = async (listId) => {
+        try {
+            await deleteDoc(doc(db, 'urlLists', listId));
+            setSuccess('Lista eliminada exitosamente');
+            loadUrlLists();
+        } catch (error) {
+            console.error('Error al eliminar lista:', error);
+            setError('Error al eliminar la lista');
+        }
+    };
+
+    const toggleListExpansion = (listId) => {
+        setExpandedLists(prev => ({
+            ...prev,
+            [listId]: !prev[listId]
+        }));
+    };
+
+    const filteredLists = urlLists.filter(list => 
+        list.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        list.urls.some(url => url.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
+    return (
+        <DashboardLayout>
+            <div className="p-6 space-y-6 max-w-7xl mx-auto">
+                <div className="flex flex-col space-y-4">
+                    <h1 className="text-2xl font-semibold text-gray-900">Gestión de URLs</h1>
+                    
+                    {/* Sección de agregar URLs */}
+                    <div className="bg-white rounded-lg shadow p-6 space-y-4">
+                        <div className="flex flex-col space-y-4">
+                            <h2 className="text-lg font-medium text-gray-900">Agregar URLs</h2>
+                            
+                            {/* Input para nombre de nueva lista */}
+                            <div>
+                                <input
+                                    type="text"
+                                    value={newListName}
+                                    onChange={(e) => setNewListName(e.target.value)}
+                                    placeholder="Nombre de la nueva lista"
+                                    className="w-full p-2 border rounded-md focus:ring-primary focus:border-primary"
+                                />
+                            </div>
+
+                            {/* Selector de lista existente */}
+                            <div>
+                                <select
+                                    value={selectedListId || ''}
+                                    onChange={(e) => setSelectedListId(e.target.value)}
+                                    className="w-full p-2 border rounded-md focus:ring-primary focus:border-primary"
+                                >
+                                    <option value="">Seleccionar lista existente</option>
+                                    {urlLists.map(list => (
+                                        <option key={list.id} value={list.id}>
+                                            {list.name} ({list.urls.length} URLs)
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Textarea para URLs */}
+                            <textarea
+                                value={newUrls}
+                                onChange={(e) => setNewUrls(e.target.value)}
+                                placeholder="Pega aquí tus URLs (una por línea o separadas por comas)"
+                                className="w-full h-32 p-3 border rounded-md focus:ring-primary focus:border-primary"
+                            />
+
+                            {/* Botones de acción */}
+                            <div className="flex space-x-4">
+                                <button
+                                    onClick={handleCreateList}
+                                    disabled={!newListName}
+                                    className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
+                                >
+                                    <PlusIcon className="h-5 w-5 mr-2" />
+                                    Crear Nueva Lista
+                                </button>
+                                <button
+                                    onClick={handleAddToList}
+                                    disabled={!selectedListId}
+                                    className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                                >
+                                    <PlusIcon className="h-5 w-5 mr-2" />
+                                    Agregar a Lista Existente
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Mensajes de error y éxito */}
+                        {error && (
+                            <div className="text-sm text-red-600 whitespace-pre-line">
+                                {error}
+                            </div>
+                        )}
+                        {success && (
+                            <div className="text-sm text-green-600">
+                                {success}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Buscador */}
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Buscar URLs o listas..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"
+                        />
+                    </div>
+
+                    {/* Lista de URLs */}
+                    <div className="bg-white shadow rounded-lg divide-y divide-gray-200">
+                        {loading ? (
+                            <div className="p-4 text-center text-gray-500">
+                                Cargando listas...
+                            </div>
+                        ) : filteredLists.length === 0 ? (
+                            <div className="p-4 text-center text-gray-500">
+                                No se encontraron listas
+                            </div>
+                        ) : (
+                            filteredLists.map((list) => (
+                                <div key={list.id} className="p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div 
+                                            className="flex-1 flex items-center space-x-3 cursor-pointer"
+                                            onClick={() => toggleListExpansion(list.id)}
+                                        >
+                                            <h3 className="text-lg font-medium text-gray-900">
+                                                {list.name}
+                                            </h3>
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                {list.urls.length} URLs
+                                            </span>
+                                            {expandedLists[list.id] ? (
+                                                <ChevronUpIcon className="h-5 w-5 text-gray-500" />
+                                            ) : (
+                                                <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteList(list.id)}
+                                            className="ml-4 p-2 text-red-600 hover:bg-red-100 rounded-full"
+                                        >
+                                            <TrashIcon className="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                    
+                                    {expandedLists[list.id] && (
+                                        <div className="mt-4 space-y-2">
+                                            {list.urls.map((url, index) => (
+                                                <div key={index} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                                                    <span className="text-sm text-gray-600 break-all">
+                                                        {url}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => handleDeleteUrl(list.id, url)}
+                                                        className="ml-4 p-1 text-red-600 hover:bg-red-100 rounded-full"
+                                                    >
+                                                        <TrashIcon className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      {/* Modal de importación */}
-      <Dialog
-        open={showImportModal}
-        onClose={() => setShowImportModal(false)}
-        className="fixed z-10 inset-0 overflow-y-auto"
-      >
-        <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-
-          <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-            <div>
-              <div className="mt-3 text-center sm:mt-5">
-                <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                  Importar URLs
-                </Dialog.Title>
-                <div className="mt-2">
-                  <textarea
-                    rows={10}
-                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                    placeholder="Ingresa las URLs (una por línea)"
-                    value={bulkUrls}
-                    onChange={(e) => setBulkUrls(e.target.value)}
-                  />
-                </div>
-              </div>
             </div>
-            <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-              <button
-                type="button"
-                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2"
-                onClick={handleBulkImport}
-                disabled={loading}
-              >
-                {loading ? 'Importando...' : 'Importar'}
-              </button>
-              <button
-                type="button"
-                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1"
-                onClick={() => setShowImportModal(false)}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      </Dialog>
-    </div>
-  );
-};
-
-export default URLs;
+        </DashboardLayout>
+    );
+}

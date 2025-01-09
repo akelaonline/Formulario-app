@@ -146,194 +146,207 @@ export default function TemplateManager() {
 
     return (
         <DashboardLayout>
-            <div className="space-y-6">
-                <div className="sm:flex sm:items-center">
-                    <div className="sm:flex-auto">
+            <div className="p-6 space-y-6 max-w-7xl mx-auto">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
                         <h1 className="text-2xl font-semibold text-gray-900">Plantillas</h1>
-                        <p className="mt-2 text-sm text-gray-700">
+                        <p className="mt-1 text-sm text-gray-500">
                             Crea y administra plantillas con datos predefinidos para usar en tus formularios.
                         </p>
                     </div>
-                    <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-                        <button
-                            type="button"
-                            onClick={() => setShowForm(true)}
-                            className="flex items-center justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
-                        >
-                            <PlusIcon className="h-5 w-5 mr-2" />
-                            Nueva Plantilla
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => {
+                            setEditingTemplate(null);
+                            setFormData({ name: '', description: '', fields: [] });
+                            setShowForm(true);
+                        }}
+                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+                    >
+                        <PlusIcon className="h-5 w-5 mr-2" />
+                        Nueva Plantilla
+                    </button>
                 </div>
 
-                {showForm && (
-                    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                            <h2 className="text-xl font-semibold mb-4">
-                                {editingTemplate ? 'Editar Plantilla' : 'Nueva Plantilla'}
-                            </h2>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Nombre</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.name}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Descripción</label>
-                                    <textarea
-                                        value={formData.description}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                    />
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center">
-                                        <label className="block text-sm font-medium text-gray-700">Campos</label>
+                <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+                    <div className="min-w-full divide-y divide-gray-200">
+                        <div className="bg-gray-50 px-6 py-3 grid grid-cols-12 gap-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <div className="col-span-3">Nombre</div>
+                            <div className="col-span-4 hidden sm:block">Descripción</div>
+                            <div className="col-span-2">Campos</div>
+                            <div className="col-span-3">Acciones</div>
+                        </div>
+                        <div className="divide-y divide-gray-200 bg-white">
+                            {templates.map((template) => (
+                                <div key={template.id} className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 transition-colors">
+                                    <div className="col-span-3 flex items-center">
+                                        <span className="text-sm font-medium text-gray-900">{template.name}</span>
+                                    </div>
+                                    <div className="col-span-4 hidden sm:flex items-center">
+                                        <span className="text-sm text-gray-500 line-clamp-2">{template.description}</span>
+                                    </div>
+                                    <div className="col-span-2 flex items-center">
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            {template.fields?.length || 0} campos
+                                        </span>
+                                    </div>
+                                    <div className="col-span-3 flex items-center space-x-3">
                                         <button
-                                            type="button"
-                                            onClick={handleAddField}
-                                            className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+                                            onClick={() => handleEdit(template)}
+                                            className="inline-flex items-center p-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                                         >
-                                            <PlusIcon className="h-4 w-4 mr-1" />
-                                            Agregar Campo
+                                            <PencilIcon className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDuplicate(template)}
+                                            className="inline-flex items-center p-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                                        >
+                                            <DocumentDuplicateIcon className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(template.id)}
+                                            className="inline-flex items-center p-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-destructive"
+                                        >
+                                            <TrashIcon className="h-4 w-4" />
                                         </button>
                                     </div>
-
-                                    {formData.fields.map((field, index) => (
-                                        <div key={index} className="flex gap-4 items-start">
-                                            <div className="flex-1">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Nombre del campo"
-                                                    value={field.name}
-                                                    onChange={(e) => handleFieldChange(index, 'name', e.target.value)}
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                                />
-                                            </div>
-                                            <div className="flex-1">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Valor"
-                                                    value={field.value}
-                                                    onChange={(e) => handleFieldChange(index, 'value', e.target.value)}
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                                />
-                                            </div>
-                                            <div className="flex-1">
-                                                <select
-                                                    value={field.type}
-                                                    onChange={(e) => handleFieldChange(index, 'type', e.target.value)}
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                                >
-                                                    <option value="text">Texto</option>
-                                                    <option value="email">Email</option>
-                                                    <option value="tel">Teléfono</option>
-                                                    <option value="number">Número</option>
-                                                    <option value="date">Fecha</option>
-                                                </select>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveField(index)}
-                                                className="inline-flex items-center p-1 border border-transparent rounded-full text-red-600 hover:bg-red-100"
-                                            >
-                                                <TrashIcon className="h-5 w-5" />
-                                            </button>
-                                        </div>
-                                    ))}
                                 </div>
-
-                                <div className="flex justify-end gap-3 mt-6">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setShowForm(false);
-                                            setEditingTemplate(null);
-                                            setFormData({
-                                                name: '',
-                                                description: '',
-                                                fields: []
-                                            });
-                                        }}
-                                        className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
-                                    >
-                                        {editingTemplate ? 'Guardar cambios' : 'Crear plantilla'}
-                                    </button>
+                            ))}
+                            {templates.length === 0 && !loading && (
+                                <div className="px-6 py-8 text-center">
+                                    <div className="text-sm text-gray-500">No hay plantillas creadas aún.</div>
                                 </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
-
-                <div className="mt-8 flow-root">
-                    <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                        <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                                <table className="min-w-full divide-y divide-gray-300">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">Nombre</th>
-                                            <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Descripción</th>
-                                            <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Campos</th>
-                                            <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                                                <span className="sr-only">Acciones</span>
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200 bg-white">
-                                        {templates.map((template) => (
-                                            <tr key={template.id}>
-                                                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900">
-                                                    {template.name}
-                                                </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                    {template.description}
-                                                </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                    {template.fields.length} campos
-                                                </td>
-                                                <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                                                    <button
-                                                        onClick={() => handleDuplicate(template)}
-                                                        className="text-indigo-600 hover:text-indigo-900 mr-4"
-                                                    >
-                                                        <DocumentDuplicateIcon className="h-5 w-5" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleEdit(template)}
-                                                        className="text-indigo-600 hover:text-indigo-900 mr-4"
-                                                    >
-                                                        <PencilIcon className="h-5 w-5" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(template.id)}
-                                                        className="text-red-600 hover:text-red-900"
-                                                    >
-                                                        <TrashIcon className="h-5 w-5" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
+
+            {showForm && (
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50">
+                    <div className="fixed inset-0 z-50 overflow-y-auto">
+                        <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                            <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:p-6">
+                                <div className="absolute right-0 top-0 pr-4 pt-4">
+                                    <button
+                                        onClick={() => setShowForm(false)}
+                                        className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                                    >
+                                        <span className="sr-only">Cerrar</span>
+                                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <h2 className="text-xl font-semibold mb-4">
+                                    {editingTemplate ? 'Editar Plantilla' : 'Nueva Plantilla'}
+                                </h2>
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Nombre</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.name}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Descripción</label>
+                                        <textarea
+                                            value={formData.description}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center">
+                                            <label className="block text-sm font-medium text-gray-700">Campos</label>
+                                            <button
+                                                type="button"
+                                                onClick={handleAddField}
+                                                className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+                                            >
+                                                <PlusIcon className="h-4 w-4 mr-1" />
+                                                Agregar Campo
+                                            </button>
+                                        </div>
+
+                                        {formData.fields.map((field, index) => (
+                                            <div key={index} className="flex gap-4 items-start">
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Nombre del campo"
+                                                        value={field.name}
+                                                        onChange={(e) => handleFieldChange(index, 'name', e.target.value)}
+                                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Valor"
+                                                        value={field.value}
+                                                        onChange={(e) => handleFieldChange(index, 'value', e.target.value)}
+                                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <select
+                                                        value={field.type}
+                                                        onChange={(e) => handleFieldChange(index, 'type', e.target.value)}
+                                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                    >
+                                                        <option value="text">Texto</option>
+                                                        <option value="email">Email</option>
+                                                        <option value="tel">Teléfono</option>
+                                                        <option value="number">Número</option>
+                                                        <option value="date">Fecha</option>
+                                                    </select>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveField(index)}
+                                                    className="inline-flex items-center p-1 border border-transparent rounded-full text-red-600 hover:bg-red-100"
+                                                >
+                                                    <TrashIcon className="h-5 w-5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="flex justify-end gap-3 mt-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowForm(false);
+                                                setEditingTemplate(null);
+                                                setFormData({
+                                                    name: '',
+                                                    description: '',
+                                                    fields: []
+                                                });
+                                            }}
+                                            className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                                        >
+                                            {editingTemplate ? 'Guardar cambios' : 'Crear plantilla'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </DashboardLayout>
     );
 }
